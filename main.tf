@@ -47,12 +47,6 @@ resource "aws_sqs_queue" "test-queue-dlc" {
 resource "aws_sqs_queue" "main_queue" {
   name = "test-queue"
 
-  redrive_policy = jsonencode({
-    deadLetterTargetArn = aws_sqs_queue.test-queue-dlc.arn
-    maxReceiveCount     = 5
-  })
-
-  depends_on = [aws_sqs_queue.test-queue-dlc]
 }
 
 # ====================

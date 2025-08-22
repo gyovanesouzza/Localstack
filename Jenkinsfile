@@ -1,14 +1,53 @@
-
-stage('Build Lambdas') {
-    steps {
-        sh '''
-            cd $WORKSPACE
-            echo "Instalando dependências da Lambda..."
-            mkdir lambda_pkg
-            cp index.py lambda_pkg/
-            echo "redis==5.0.1" > requirements.txt
-            pip install -r requirements.txt -t lambda_pkg/
-            cd lambda_pkg && zip -r ../lambda_from_sqs.zip . && zip -r ../lambda_direct.zip .
-        '''
+pipeline {
+    agent any
+    environment {
+        SSH_REMOTE = "jenkins@192.168.100.120"
+        PROJECT_DIR = "/home/project/Localstack"
+    }
+    stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'main', url: 'git@github.com:gyovanesouzza/Localstack.git'
+            }
+        }
+        stage('Update Remote') {
+            steps {
+                sh "ssh -o StrictHostKeyChecking=no $SSH_REMOTE 'cd $PROJECT_DIR && git pull origin main'"
+            }
+        }
+        stage('Terraform Init & Apply') {
+            steps {
+                sh """
+                ssh $SSH_REMOTE '
+                  cd $PROJECT_DIR &&
+                  terraform init &&
+                  terraform apply -auto-approve
+                '
+                """
+            }
+        }
+        stage('Docker Compose Up') {
+            steps {
+                sh """
+                ssh $SSH_REMOTE '
+                  cd $PROJECT_DIR &&
+                  docker compose up -d --build
+                '
+                """
+            }
+        }
+        stage('Test') {
+            steps {
+                sh "ssh $SSH_REMOTE 'cd $PROJECT_DIR && ./run_tests.sh'"
+            }
+        }
+    }
+    post {
+        success {
+            echo 'Pipeline concluída com sucesso!'
+        }
+        failure {
+            echo 'Pipeline falhou.'
+        }
     }
 }
