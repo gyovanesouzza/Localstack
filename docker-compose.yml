@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   localstack:
-    image: localstack/localstack:1.4.0   # versão estável
+    image: localstack/localstack:1.4.0
     container_name: localstack
     ports:
       - "4566:4566"
@@ -12,7 +12,10 @@ services:
       - DEBUG=1
       - LAMBDA_EXECUTOR=docker
       - DOCKER_HOST=unix:///var/run/docker.sock
+      - LOCALSTACK_AUTH_TOKEN=${LOCALSTACK_AUTH_TOKEN:- }  # <-- Adicionado aqui!
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
-      - "./localstack-data:/var/lib/localstack"  # <-- aqui mudou!
+      - "./localstack-data:/var/lib/localstack"
     restart: always
+
+
