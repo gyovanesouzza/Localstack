@@ -2,16 +2,18 @@ version: "3.8"
 
 services:
   localstack:
-    image: localstack/localstack:latest
+    image: localstack/localstack:1.4.0   # versão estável, mais compatível
     container_name: localstack
     ports:
-      - "4566:4566"   # edge port
-      - "4571:4571"
+      - "4566:4566"   # edge port (todos os serviços)
+      - "4571:4571"   # UI/Debug (opcional)
     environment:
       - SERVICES=iam,lambda,sqs,apigateway
       - DEBUG=1
       - LAMBDA_EXECUTOR=docker
+      - DATA_DIR=/tmp/localstack
       - DOCKER_HOST=unix:///var/run/docker.sock
     volumes:
-      - "./localstack-data:/tmp/localstack"
-
+      - "/var/run/docker.sock:/var/run/docker.sock"  # necessário para Lambdas executarem em Docker
+      - "./localstack-data:/tmp/localstack"         # persistência de dados
+    restart: always
