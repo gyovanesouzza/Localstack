@@ -1,7 +1,7 @@
 pipeline {
     agent any
     environment {
-        SSH_REMOTE = "jenkins@192.168.100.120"
+        SSH_REMOTE = "jenkins@192.168.100.161"
         PROJECT_DIR = "/home/project/Localstack"
     }
     stages {

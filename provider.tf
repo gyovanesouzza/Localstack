@@ -8,9 +8,9 @@ provider "aws" {
   s3_use_path_style           = true
 
   endpoints {
-    iam        = "http://192.168.100.120:4566"
-    lambda     = "http://192.168.100.120:4566"
-    sqs        = "http://192.168.100.120:4566"
-    apigateway = "http://192.168.100.120:4566"
+    iam        = "http://192.168.100.161:4566"
+    lambda     = "http://192.168.100.161:4566"
+    sqs        = "http://192.168.100.161:4566"
+    apigateway = "http://192.168.100.161:4566"
   }
 }

@@ -5,7 +5,7 @@ import os
 def handler(event, context):
     try:
         r = redis.Redis(
-            host="192.168.100.121",
+            host="192.168.100.162",
             port=int(os.getenv("REDIS_PORT", 6379)),
             decode_responses=True
         )
