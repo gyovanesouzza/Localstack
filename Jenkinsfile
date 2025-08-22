@@ -5,49 +5,37 @@ pipeline {
         PROJECT_DIR = "/home/project/Localstack"
     }
     stages {
-        stage('Checkout') {
+        stage('Checkout from Git') {
             steps {
+               
                 git branch: 'main', url: 'git@github.com:gyovanesouzza/Localstack.git'
             }
         }
-        stage('Update Remote') {
+        
+        stage('Deploy Remoto Completo') {
             steps {
-                sh "ssh -o StrictHostKeyChecking=no $SSH_REMOTE 'cd $PROJECT_DIR && git pull origin main'"
-            }
-        }
-        stage('Terraform Init & Apply') {
-            steps {
-                sh """
-                ssh $SSH_REMOTE '
-                  cd $PROJECT_DIR &&
-                  terraform init &&
-                  terraform apply -auto-approve
-                '
-                """
-            }
-        }
-        stage('Docker Compose Up') {
-            steps {
-                sh """
-                ssh $SSH_REMOTE '
-                  cd $PROJECT_DIR &&
-                  docker compose up -d --build
-                '
-                """
-            }
-        }
-        stage('Test') {
-            steps {
-                sh "ssh $SSH_REMOTE 'cd $PROJECT_DIR && ./run_tests.sh'"
+                script {
+     
+                    sh """
+                    ssh $SSH_REMOTE '
+                      cd $PROJECT_DIR && 
+                      git pull origin main &&
+                      tflocal init && 
+                      tflocal apply -parallelism=1 -auto-approve &&
+                      docker compose up -d --build && 
+                      ./run_tests.sh
+                    '
+                    """
+                }
             }
         }
     }
     post {
         success {
-            echo 'Pipeline concluída com sucesso!'
+            echo '✅ Pipeline concluída com sucesso!'
         }
         failure {
-            echo 'Pipeline falhou.'
+            echo '❌ Pipeline falhou.'
         }
     }
 }
