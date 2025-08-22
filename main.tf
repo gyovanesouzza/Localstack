@@ -51,8 +51,8 @@ resource "aws_sqs_queue" "main_queue" {
     deadLetterTargetArn = aws_sqs_queue.dlq.arn
     maxReceiveCount     = 5
   })
-  depends_on = [aws_sqs_queue.dlq]
 
+  depends_on = [aws_sqs_queue.dlq]
 }
 
 # ====================
@@ -63,8 +63,9 @@ resource "aws_lambda_function" "lambda_from_sqs" {
   role          = aws_iam_role.lambda_exec_role.arn
   handler       = "index.handler"
   runtime       = "python3.9"
+  filename      = "${path.module}/lambda_from_sqs.zip"
 
-  filename = "${path.module}/lambda_from_sqs.zip"
+  depends_on = [aws_iam_role_policy_attachment.lambda_policy_attach]
 }
 
 resource "aws_lambda_function" "lambda_direct" {
@@ -72,14 +73,19 @@ resource "aws_lambda_function" "lambda_direct" {
   role          = aws_iam_role.lambda_exec_role.arn
   handler       = "index.handler"
   runtime       = "python3.9"
+  filename      = "${path.module}/lambda_direct.zip"
 
-  filename = "${path.module}/lambda_direct.zip"
+  depends_on = [aws_iam_role_policy_attachment.lambda_policy_attach]
 }
 
-# Permissão para Lambda ser chamada pelo SQS
 resource "aws_lambda_event_source_mapping" "sqs_to_lambda" {
   event_source_arn = aws_sqs_queue.main_queue.arn
   function_name    = aws_lambda_function.lambda_from_sqs.arn
+
+  depends_on = [
+    aws_lambda_function.lambda_from_sqs,
+    aws_sqs_queue.main_queue
+  ]
 }
 
 # ====================
@@ -90,7 +96,6 @@ resource "aws_api_gateway_rest_api" "api_cloud" {
   description = "API Cloud LocalStack"
 }
 
-# Root Resource
 resource "aws_api_gateway_resource" "resource_async" {
   rest_api_id = aws_api_gateway_rest_api.api_cloud.id
   parent_id   = aws_api_gateway_rest_api.api_cloud.root_resource_id
@@ -103,7 +108,7 @@ resource "aws_api_gateway_resource" "resource_sync" {
   path_part   = "sync"
 }
 
-# Async Method (POST -> SQS)
+# Async Method -> SQS
 resource "aws_api_gateway_method" "async_post" {
   rest_api_id   = aws_api_gateway_rest_api.api_cloud.id
   resource_id   = aws_api_gateway_resource.resource_async.id
@@ -118,9 +123,11 @@ resource "aws_api_gateway_integration" "async_integration" {
   integration_http_method = "POST"
   type                    = "AWS"
   uri                     = aws_sqs_queue.main_queue.arn
+
+  depends_on = [aws_api_gateway_method.async_post, aws_sqs_queue.main_queue]
 }
 
-# Sync Method (GET -> Lambda Direct)
+# Sync Method -> Lambda
 resource "aws_api_gateway_method" "sync_get" {
   rest_api_id   = aws_api_gateway_rest_api.api_cloud.id
   resource_id   = aws_api_gateway_resource.resource_sync.id
@@ -135,14 +142,15 @@ resource "aws_api_gateway_integration" "sync_integration" {
   integration_http_method = "POST"
   type                    = "AWS_PROXY"
   uri                     = aws_lambda_function.lambda_direct.invoke_arn
+
+  depends_on = [aws_api_gateway_method.sync_get, aws_lambda_function.lambda_direct]
 }
 
-# Deploy API
 resource "aws_api_gateway_deployment" "api_deploy" {
+  rest_api_id = aws_api_gateway_rest_api.api_cloud.id
+
   depends_on = [
     aws_api_gateway_integration.async_integration,
     aws_api_gateway_integration.sync_integration
   ]
-  rest_api_id = aws_api_gateway_rest_api.api_cloud.id
-  #stage_name  = "dev"
 }
