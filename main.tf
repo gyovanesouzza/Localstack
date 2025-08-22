@@ -51,6 +51,8 @@ resource "aws_sqs_queue" "main_queue" {
     deadLetterTargetArn = aws_sqs_queue.dlq.arn
     maxReceiveCount     = 5
   })
+  depends_on = [aws_sqs_queue.dlq]
+
 }
 
 # ====================
