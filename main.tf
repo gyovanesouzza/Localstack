@@ -40,19 +40,19 @@ resource "aws_iam_role_policy_attachment" "lambda_policy_attach" {
 # ====================
 # SQS + DLQ
 # ====================
-resource "aws_sqs_queue" "dlq" {
-  name = "my-dlq"
+resource "aws_sqs_queue" "test-queue-dlc" {
+  name = "test-queue-dlc"
 }
 
 resource "aws_sqs_queue" "main_queue" {
-  name = "my-main-queue"
+  name = "test-queue"
 
   redrive_policy = jsonencode({
-    deadLetterTargetArn = aws_sqs_queue.dlq.arn
+    deadLetterTargetArn = aws_sqs_queue.test-queue-dlc.arn
     maxReceiveCount     = 5
   })
 
-  depends_on = [aws_sqs_queue.dlq]
+  depends_on = [aws_sqs_queue.test-queue-dlc]
 }
 
 # ====================
